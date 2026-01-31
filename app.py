@@ -48,20 +48,26 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. DATA CONNECTION (Google Drive 1.2GB Handler) ---
+# --- 2. DATA CONNECTION (Updated with Auto-Fix) ---
 @st.cache_data
 def load_data():
-    # Direct link to your 1.2GB file
     file_id = "1g3T1DhAQQTN8G1tCJ_Te3xa0qx5pBgfw"
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
     
     try:
-        # We read 100k rows to stay within Streamlit RAM limits
+        # Read the file
         df = pd.read_csv(url, nrows=100000) 
+        
+        # --- THE FIX: Clean Column Names ---
+        # This removes spaces and makes everything Title Case (Sum, Winning Color)
+        df.columns = df.columns.str.strip().str.title()
+        
+        # If 'Winning Color' is named differently in your file (e.g. 'Color'), 
+        # we ensure it exists or rename it here.
         return df
     except Exception as e:
         st.error(f"❌ Connection Error: {e}")
-        return pd.DataFrame(columns=['Numbers', 'Sum', 'Winning Color'])
+        return pd.DataFrame()
 
 # Initialize Data
 df = load_data()
@@ -154,3 +160,4 @@ if st.button("RUN PEARL", type="primary", use_container_width=True):
                     st.warning(f"No match found for Sum {sum_2} + {st.session_state.color_2}")
         else:
             st.error("⚠️ No historical matches found for these specific combinations in the database.")
+
