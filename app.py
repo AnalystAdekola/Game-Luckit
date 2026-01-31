@@ -269,4 +269,5 @@ try:
         plt.show()
 
 except ValueError:
+
     print("Please enter a valid number for the sum.")
