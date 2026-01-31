@@ -71,6 +71,7 @@ def load_data():
 
 # Initialize Data
 df = load_data()
+st.write("Columns found in your file:", df.columns.tolist())
 
 # --- 3. STATE MANAGEMENT ---
 if 'color_1' not in st.session_state: st.session_state.color_1 = 'Red'
@@ -160,4 +161,5 @@ if st.button("RUN PEARL", type="primary", use_container_width=True):
                     st.warning(f"No match found for Sum {sum_2} + {st.session_state.color_2}")
         else:
             st.error("⚠️ No historical matches found for these specific combinations in the database.")
+
 
