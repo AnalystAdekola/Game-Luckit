@@ -3,92 +3,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import random
 
-# --- 1. CONFIG & THEME (Manchester United Style) ---
-
+# --- 1. CONFIG & THEME ---
 st.set_page_config(page_title="Game Luckit", page_icon="⚽", layout="wide")
 
-
-
 st.markdown("""
-
     <style>
-
-    /* Manchester United Dark Mode */
-
-    .stApp {
-
-        background-color: #000000;
-
-        color: #FFFFFF;
-
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-
-    }
-
-    
-
-    /* Input Boxes - United Red & Gold */
-
-    .stNumberInput input {
-
-        background-color: #1A1A1A !important;
-
-        color: #DA291C !important;
-
-        border: 2px solid #FBE122 !important;
-
-        border-radius: 10px !important;
-
-        font-weight: bold;
-
-    }
-
-
-
-    /* Button Styling */
-
-    .stButton>button {
-
-        border-radius: 8px !important;
-
-        font-weight: bold !important;
-
-        border: 1px solid #333 !important;
-
-    }
-
-
-
-    /* THE PEARL BUTTON (Lemon Color) */
-
-    div.stButton > button:first-child[kind="primary"] {
-
-        background-color: #D1FF00 !important;
-
-        color: #000000 !important;
-
-        border: none !important;
-
-        font-size: 22px !important;
-
-        height: 3.5em !important;
-
-        box-shadow: 0px 0px 20px rgba(209, 255, 0, 0.5);
-
-        margin-top: 20px;
-
-    }
-
-    
-
-    /* Header styling */
-
-    h1 { color: #DA291C; text-shadow: 2px 2px #000000; text-align: center; }
-
-    h3 { text-align: center; color: #FFFFFF; }
-
+    .stApp { background-color: #000000; color: #FFFFFF; }
+    .stNumberInput input { background-color: #1A1A1A !important; color: #DA291C !important; border: 2px solid #FBE122 !important; border-radius: 10px !important; }
+    .stButton>button { border-radius: 8px !important; font-weight: bold !important; }
+    div.stButton > button:first-child[kind="primary"] { background-color: #D1FF00 !important; color: #000000 !important; font-size: 22px !important; height: 3.5em !important; width: 100%; box-shadow: 0px 0px 20px rgba(209, 255, 0, 0.5); }
+    h1 { color: #DA291C; text-align: center; }
     </style>
-
 """, unsafe_allow_html=True)
 
 # --- 2. DATA CONNECTION ---
@@ -194,3 +119,4 @@ if st.button("RUN PEARL", type="primary"):
                         st.warning("No matches for Plot 2")
             else:
                 st.error("No historical data found for these specific combinations.")
+
