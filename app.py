@@ -80,7 +80,7 @@ with col_input2:
 
 st.info(f"Analysis targeting: **Sum {user_sum}** and **Color {st.session_state.selected_color}**")
 
-# --- 6. THE PEARL LOGIC (Double Analysis) ---
+# --- 6. THE PEARL LOGIC (Double Analysis - 5 Charts) ---
 if st.button("RUN PEARL", type="primary"):
     if df.empty:
         st.error("Database failed to load.")
@@ -94,9 +94,10 @@ if st.button("RUN PEARL", type="primary"):
             if not initial_match.empty:
                 start_pos = df.index.get_loc(initial_match.index[0])
                 
-                # Slices
+                # 1. First 10 Rows
                 chart1_data = df.iloc[start_pos : min(start_pos + 10, len(df))]
                 
+                # 2. 6+ Window Search
                 chart2_data = pd.DataFrame()
                 for i in range(start_pos, min(start_pos + 500, len(df) - 9)):
                     win = df.iloc[i : i + 10]
@@ -104,6 +105,7 @@ if st.button("RUN PEARL", type="primary"):
                         chart2_data = win
                         break
                 
+                # 3. 3+ Window Search
                 chart3_data = pd.DataFrame()
                 for i in range(start_pos, min(start_pos + 500, len(df) - 4)):
                     win = df.iloc[i : i + 5]
@@ -111,43 +113,68 @@ if st.button("RUN PEARL", type="primary"):
                         chart3_data = win
                         break
 
-                # --- PART B: PROBABILITY SIMULATION ---
+                # 4. Merged Historical Data (The missing 4th historical chart)
+                merged_hist = pd.concat([chart1_data, chart2_data, chart3_data]).drop_duplicates()
+
+                # --- PART B: PROBABILITY SIMULATION (The 5th Chart) ---
                 winners_list = [st.session_state.selected_color]
                 for _ in range(9):
                     winners_list.append(calculate_winner(random.sample(range(1, 50), 6)))
                 sim_df = pd.DataFrame(winners_list, columns=['Winning Color'])
 
-                # --- PART C: PLOTTING ALL CHARTS ---
-                st.markdown("### 📊 Historical Patterns (From Database)")
-                fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
-                fig.patch.set_facecolor('black')
-                color_map = {'Red': 'red', 'Blue': 'blue', 'Green': 'green', 'Black': '#444444', 'Draw': 'white', 'No Majority': 'gray'}
+                # --- PART C: PLOTTING ---
+                color_map = {'Red': '#DA291C', 'Blue': '#0000FF', 'Green': '#00FF00', 'Black': '#444444', 'Draw': '#FFFFFF', 'No Majority': '#777777'}
 
-                def draw_chart(ax, data, title):
-                    if not data.empty:
-                        counts = data['Winning Color'].value_counts()
-                        ax.bar(counts.index, counts.values, color=[color_map.get(c, 'gray') for c in counts.index])
-                        ax.set_title(title, color='white')
-                        ax.tick_params(colors='white')
-                        ax.set_facecolor('black')
-                    else:
-                        ax.text(0.5, 0.5, "Pattern Not Found", color='red', ha='center')
-                        ax.axis('off')
+                def setup_ax(ax, title):
+                    ax.set_title(title, color='#FBE122', fontsize=12, fontweight='bold')
+                    ax.set_facecolor('black')
+                    ax.tick_params(colors='white')
+                    for spine in ax.spines.values(): spine.set_color('#333333')
 
-                draw_chart(ax1, chart1_data, "First 10 Rows")
-                draw_chart(ax2, chart2_data, "6+ Color Pattern")
-                draw_chart(ax3, chart3_data, "3+ Color Pattern")
-                st.pyplot(fig)
+                # ROW 1: The 3 Pattern Charts
+                st.markdown("### 📊 Historical Pattern Breakdown")
+                fig1, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+                fig1.patch.set_facecolor('black')
+                
+                # Chart 1
+                counts1 = chart1_data['Winning Color'].value_counts()
+                ax1.bar(counts1.index, counts1.values, color=[color_map.get(c, 'gray') for c in counts1.index])
+                setup_ax(ax1, "First 10 Rows")
 
+                # Chart 2
+                if not chart2_data.empty:
+                    counts2 = chart2_data['Winning Color'].value_counts()
+                    ax2.bar(counts2.index, counts2.values, color=[color_map.get(c, 'gray') for c in counts2.index])
+                setup_ax(ax2, "6+ Color Window")
+
+                # Chart 3
+                if not chart3_data.empty:
+                    counts3 = chart3_data['Winning Color'].value_counts()
+                    ax3.bar(counts3.index, counts3.values, color=[color_map.get(c, 'gray') for c in counts3.index])
+                setup_ax(ax3, "3+ Color Window")
+                st.pyplot(fig1)
+
+                # ROW 2: Merged Total and Simulation
                 st.markdown("---")
-                st.markdown("### 🎲 Probability Distribution (Simulation)")
-                fig_sim, ax_sim = plt.subplots(figsize=(10, 4))
-                fig_sim.patch.set_facecolor('black')
-                ax_sim.set_facecolor('black')
-                sim_counts = sim_df['Winning Color'].value_counts()
-                ax_sim.bar(sim_counts.index, sim_counts.values, color=[color_map.get(c, 'gray') for c in sim_counts.index])
-                ax_sim.tick_params(colors='white')
-                st.pyplot(fig_sim)
+                col_bottom1, col_bottom2 = st.columns(2)
+                
+                with col_bottom1:
+                    st.write("#### 📈 Combined Historical Impact")
+                    fig2, ax4 = plt.subplots()
+                    fig2.patch.set_facecolor('black')
+                    m_counts = merged_hist['Winning Color'].value_counts()
+                    ax4.bar(m_counts.index, m_counts.values, color=[color_map.get(c, 'gray') for c in m_counts.index])
+                    setup_ax(ax4, "Total Historical Occurrences")
+                    st.pyplot(fig2)
+
+                with col_bottom2:
+                    st.write("#### 🎲 Master Probability Simulation")
+                    fig3, ax5 = plt.subplots()
+                    fig3.patch.set_facecolor('black')
+                    s_counts = sim_df['Winning Color'].value_counts()
+                    ax5.bar(s_counts.index, s_counts.values, color=[color_map.get(c, 'gray') for c in s_counts.index])
+                    setup_ax(ax5, f"Simulation (Master: {st.session_state.selected_color})")
+                    st.pyplot(fig3)
 
             else:
                 st.error("No matches found in the database for those inputs.")
