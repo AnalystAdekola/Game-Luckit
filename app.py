@@ -10,167 +10,144 @@ st.set_page_config(page_title="Game Luckit", page_icon="⚽", layout="wide")
 
 st.markdown("""
     <style>
-    /* Manchester United Dark Mode */
-    .stApp {
-        background-color: #000000;
-        color: #FFFFFF;
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
-    
-    /* Input Boxes - United Red & Gold */
-    .stNumberInput input {
-        background-color: #1A1A1A !important;
-        color: #DA291C !important;
-        border: 2px solid #FBE122 !important;
-        border-radius: 10px !important;
-        font-weight: bold;
-    }
-
-    /* Button Styling */
-    .stButton>button {
-        border-radius: 8px !important;
-        font-weight: bold !important;
-        border: 1px solid #333 !important;
-    }
-
-    /* THE PEARL BUTTON (Lemon Color) */
-    div.stButton > button:first-child[kind="primary"] {
-        background-color: #D1FF00 !important;
-        color: #000000 !important;
-        border: none !important;
-        font-size: 22px !important;
-        height: 3.5em !important;
-        box-shadow: 0px 0px 20px rgba(209, 255, 0, 0.6);
-        margin-top: 20px;
-    }
-    
-    /* Header styling */
-    h1 { color: #DA291C; text-shadow: 2px 2px #000000; text-align: center; margin-bottom: 0px; }
-    h3 { text-align: center; color: #FFFFFF; margin-top: 0px; opacity: 0.8; }
+    .stApp { background-color: #000000; color: #FFFFFF; font-family: 'Segoe UI', sans-serif; }
+    .stNumberInput input { background-color: #1A1A1A !important; color: #DA291C !important; border: 2px solid #FBE122 !important; border-radius: 10px !important; font-weight: bold; }
+    .stButton>button { border-radius: 8px !important; font-weight: bold !important; border: 1px solid #333 !important; }
+    div.stButton > button:first-child[kind="primary"] { background-color: #D1FF00 !important; color: #000000 !important; font-size: 22px !important; height: 3.5em !important; box-shadow: 0px 0px 20px rgba(209, 255, 0, 0.6); margin-top: 20px; width: 100%; }
+    h1 { color: #DA291C; text-shadow: 2px 2px #000000; text-align: center; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. DATA CONNECTION (gdown for 1.2GB Files) ---
+# --- 2. DATA CONNECTION ---
 @st.cache_data
 def load_data():
     file_id = "1g3T1DhAQQTN8G1tCJ_Te3xa0qx5pBgfw"
     url = f"https://drive.google.com/uc?id={file_id}"
     output = "large_data.csv"
-    
     try:
-        # Download file if it doesn't exist locally on the server
         if not os.path.exists(output):
-            with st.spinner("Downloading Global Database (1.2GB)... This happens only once."):
+            with st.spinner("Downloading Database (1.2GB)..."):
                 gdown.download(url, output, quiet=False)
-        
-        # Read 100k rows to manage RAM
         df = pd.read_csv(output, nrows=100000) 
-        
-        # Standardize Columns
         df.columns = df.columns.str.strip()
         if 'Sum' in df.columns:
             df['Sum'] = pd.to_numeric(df['Sum'], errors='coerce')
-        
         return df
     except Exception as e:
         st.error(f"❌ Connection Error: {e}")
         return pd.DataFrame()
 
-# Initialize Data
 df = load_data()
 
-# --- 3. STATE MANAGEMENT ---
-if 'color_1' not in st.session_state: st.session_state.color_1 = 'Red'
-if 'color_2' not in st.session_state: st.session_state.color_2 = 'Blue'
+# --- 3. HELPER FUNCTIONS FOR SIMULATION ---
+def get_color_name(n):
+    if n == 49: return 'Black'
+    mapping = {1: 'Red', 2: 'Blue', 0: 'Green'}
+    return mapping[n % 3]
 
-# --- 4. APP INTERFACE ---
+def calculate_winner(numbers):
+    counts = {'Red': 0, 'Blue': 0, 'Green': 0, 'Black': 0}
+    for n in numbers:
+        counts[get_color_name(n)] += 1
+    max_val = max(counts['Red'], counts['Blue'], counts['Green'])
+    winners = [c for c, count in counts.items() if count == max_val and c != 'Black']
+    return winners[0] if len(winners) == 1 and max_val >= 3 else "Draw"
+
+# --- 4. STATE MANAGEMENT ---
+if 'selected_color' not in st.session_state: st.session_state.selected_color = 'Red'
+
+# --- 5. UI ---
 st.title("⚽ Game Luckit")
-st.write("### Manchester United Strategy Dashboard")
+st.write("<h3 style='text-align: center;'>Unified Strategy Dashboard</h3>", unsafe_allow_html=True)
 
-# --- PLOT 1 SECTION ---
 st.markdown("---")
-st.subheader("🎯 First Plot Configuration")
-sum_1 = st.number_input("Enter First Target Sum", min_value=1, value=100, key="s1")
+col_input1, col_input2 = st.columns([1, 2])
 
-c1_col1, c1_col2, c1_col3, c1_col4 = st.columns(4)
-with c1_col1:
-    if st.button("🔴 Red", key="btn_r1", use_container_width=True): st.session_state.color_1 = "Red"
-with c1_col2:
-    if st.button("🔵 Blue", key="btn_b1", use_container_width=True): st.session_state.color_1 = "Blue"
-with c1_col3:
-    if st.button("🟢 Green", key="btn_g1", use_container_width=True): st.session_state.color_1 = "Green"
-with c1_col4:
-    if st.button("⚫ Black", key="btn_bl1", use_container_width=True): st.session_state.color_1 = "Black"
+with col_input1:
+    user_sum = st.number_input("Enter Target Sum", min_value=1, value=100)
 
-st.markdown(f"Selected: **{st.session_state.color_1}**")
+with col_input2:
+    st.write("Select Winning Color")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        if st.button("🔴 Red", use_container_width=True): st.session_state.selected_color = "Red"
+    with c2:
+        if st.button("🔵 Blue", use_container_width=True): st.session_state.selected_color = "Blue"
+    with c3:
+        if st.button("🟢 Green", use_container_width=True): st.session_state.selected_color = "Green"
+    with c4:
+        if st.button("⚫ Black", use_container_width=True): st.session_state.selected_color = "Black"
 
-# --- PLOT 2 SECTION ---
-st.markdown("---")
-st.subheader("📊 Second Plot Configuration")
-sum_2 = st.number_input("Enter Second Target Sum", min_value=1, value=150, key="s2")
+st.info(f"Analysis targeting: **Sum {user_sum}** and **Color {st.session_state.selected_color}**")
 
-c2_col1, c2_col2, c2_col3, c2_col4 = st.columns(4)
-with c2_col1:
-    if st.button("🔴 Red ", key="btn_r2", use_container_width=True): st.session_state.color_2 = "Red"
-with c2_col2:
-    if st.button("🔵 Blue ", key="btn_b2", use_container_width=True): st.session_state.color_2 = "Blue"
-with c2_col3:
-    if st.button("🟢 Green ", key="btn_g2", use_container_width=True): st.session_state.color_2 = "Green"
-with c2_col4:
-    if st.button("⚫ Black ", key="btn_bl2", use_container_width=True): st.session_state.color_2 = "Black"
-
-st.markdown(f"Selected: **{st.session_state.color_2}**")
-
-st.markdown("###")
-
-# --- 5. THE PEARL BUTTON & LOGIC ---
-if st.button("RUN PEARL", type="primary", use_container_width=True):
+# --- 6. THE PEARL LOGIC (Double Analysis) ---
+if st.button("RUN PEARL", type="primary"):
     if df.empty:
-        st.error("Database is empty or failed to load.")
+        st.error("Database failed to load.")
     else:
-        with st.spinner("⚔️ Analyzing Old Trafford Historical Data..."):
+        with st.spinner("⚔️ Executing Master Analysis..."):
             
-            # Filtering Logic
-            match1 = df[
-                (df['Sum'] == sum_1) & 
-                (df['Winning Color'].astype(str).str.strip().str.lower() == st.session_state.color_1.lower())
-            ].head(10)
+            # --- PART A: HISTORICAL PATTERN SEARCH ---
+            condition = (df['Sum'] == user_sum) & (df['Winning Color'].str.lower() == st.session_state.selected_color.lower())
+            initial_match = df[condition].head(1)
 
-            match2 = df[
-                (df['Sum'] == sum_2) & 
-                (df['Winning Color'].astype(str).str.strip().str.lower() == st.session_state.color_2.lower())
-            ].head(10)
-
-            if not match1.empty or not match2.empty:
-                col_res1, col_res2 = st.columns(2)
+            if not initial_match.empty:
+                start_pos = df.index.get_loc(initial_match.index[0])
                 
-                # Plotting Colors
-                color_map = {'Red': '#DA291C', 'Blue': '#0000FF', 'Green': '#00FF00', 'Black': '#444444', 'Draw': '#FFFFFF'}
+                # Slices
+                chart1_data = df.iloc[start_pos : min(start_pos + 10, len(df))]
+                
+                chart2_data = pd.DataFrame()
+                for i in range(start_pos, min(start_pos + 500, len(df) - 9)):
+                    win = df.iloc[i : i + 10]
+                    if any(win['Winning Color'].value_counts() >= 6):
+                        chart2_data = win
+                        break
+                
+                chart3_data = pd.DataFrame()
+                for i in range(start_pos, min(start_pos + 500, len(df) - 4)):
+                    win = df.iloc[i : i + 5]
+                    if any(win['Winning Color'].value_counts() >= 3):
+                        chart3_data = win
+                        break
 
-                with col_res1:
-                    st.write(f"#### {st.session_state.color_1} Analysis")
-                    if not match1.empty:
-                        fig1, ax1 = plt.subplots()
-                        fig1.patch.set_facecolor('black')
-                        ax1.set_facecolor('black')
-                        counts = match1['Winning Color'].value_counts()
-                        ax1.bar(counts.index, counts.values, color=[color_map.get(c, 'gray') for c in counts.index])
-                        ax1.tick_params(colors='white')
-                        st.pyplot(fig1)
-                    else:
-                        st.warning("No matches for Plot 1")
+                # --- PART B: PROBABILITY SIMULATION ---
+                winners_list = [st.session_state.selected_color]
+                for _ in range(9):
+                    winners_list.append(calculate_winner(random.sample(range(1, 50), 6)))
+                sim_df = pd.DataFrame(winners_list, columns=['Winning Color'])
 
-                with col_res2:
-                    st.write(f"#### {st.session_state.color_2} Analysis")
-                    if not match2.empty:
-                        fig2, ax2 = plt.subplots()
-                        fig2.patch.set_facecolor('black')
-                        ax2.set_facecolor('black')
-                        counts2 = match2['Winning Color'].value_counts()
-                        ax2.bar(counts2.index, counts2.values, color=[color_map.get(c, 'gray') for c in counts2.index])
-                        ax2.tick_params(colors='white')
-                        st.pyplot(fig2)
+                # --- PART C: PLOTTING ALL CHARTS ---
+                st.markdown("### 📊 Historical Patterns (From Database)")
+                fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+                fig.patch.set_facecolor('black')
+                color_map = {'Red': 'red', 'Blue': 'blue', 'Green': 'green', 'Black': '#444444', 'Draw': 'white', 'No Majority': 'gray'}
+
+                def draw_chart(ax, data, title):
+                    if not data.empty:
+                        counts = data['Winning Color'].value_counts()
+                        ax.bar(counts.index, counts.values, color=[color_map.get(c, 'gray') for c in counts.index])
+                        ax.set_title(title, color='white')
+                        ax.tick_params(colors='white')
+                        ax.set_facecolor('black')
                     else:
-                        st.warning("No matches for Plot 2")
+                        ax.text(0.5, 0.5, "Pattern Not Found", color='red', ha='center')
+                        ax.axis('off')
+
+                draw_chart(ax1, chart1_data, "First 10 Rows")
+                draw_chart(ax2, chart2_data, "6+ Color Pattern")
+                draw_chart(ax3, chart3_data, "3+ Color Pattern")
+                st.pyplot(fig)
+
+                st.markdown("---")
+                st.markdown("### 🎲 Probability Distribution (Simulation)")
+                fig_sim, ax_sim = plt.subplots(figsize=(10, 4))
+                fig_sim.patch.set_facecolor('black')
+                ax_sim.set_facecolor('black')
+                sim_counts = sim_df['Winning Color'].value_counts()
+                ax_sim.bar(sim_counts.index, sim_counts.values, color=[color_map.get(c, 'gray') for c in sim_counts.index])
+                ax_sim.tick_params(colors='white')
+                st.pyplot(fig_sim)
+
             else:
-                st.error("No historical matches found for these combinations.")
+                st.error("No matches found in the database for those inputs.")
